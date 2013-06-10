@@ -38,7 +38,7 @@ void reverse_complement(string &seq_rc, bool nucleotides_only) {
 // NOTE: Assumes line.length() > 0!!!!
 void trim(string &line, long &start, long &end) {
   // Trim leading spaces. 
-  for(long i = start; i < (int)line.length(); i++) { 
+  for(long i = start; i < (long)line.length(); i++) { 
     if(line[i] != ' ') { start = i; break; } 
   }
   // Trim trailing spaces.

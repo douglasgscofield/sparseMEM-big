@@ -6,7 +6,7 @@
 #include "sparseSA.hpp"
 
 // LS suffix sorter (integer alphabet). 
-extern "C" { void suffixsort(int *x, int *p, int n, int k, int l); };
+extern "C" { void suffixsort(SAentry_t *x, SAentry_t *p, SAentry_t n, SAentry_t k, SAentry_t l); };
 
 pthread_mutex_t cout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -33,8 +33,8 @@ sparseSA::sparseSA(string &S_, vector<string> &descr_, vector<long> &startpos_, 
 
   if(K > 1) {
     long bucketNr = 1;
-    int *intSA = new int[N/K+1];  for(int i = 0; i < N/K; i++) intSA[i] = i; // Init SA.
-    int* t_new = new int[N/K+1];
+    SAentry_t *intSA = new SAentry_t[N/K+1];  for(SAentry_t i = 0; i < N/K; i++) intSA[i] = i; // Init SA.
+    SAentry_t* t_new = new SAentry_t[N/K+1];
     long* BucketBegin = new long[256]; // array to save current bucket beginnings
     radixStep(t_new, intSA, bucketNr, BucketBegin, 0, N/K-1, 0); // start radix sort
     t_new[N/K] = 0; // Terminate new integer string.
@@ -49,12 +49,12 @@ sparseSA::sparseSA(string &S_, vector<string> &descr_, vector<long> &startpos_, 
 
     // Translate suffix array. 
     SA.resize(N/K);
-    for (long i=0; i<N/K; i++) SA[i] = (unsigned int)intSA[i+1] * K;
+    for (long i=0; i<N/K; i++) SA[i] = (unsigned SAentry_t)intSA[i+1] * K;
     delete[] intSA;
 
     // Build ISA using sparse SA. 
     ISA.resize(N/K);             
-    for(long i = 0; i < N/K; i++) { ISA[SA[i]/K] = i; }
+    for (long i = 0; i < N/K; i++) { ISA[SA[i]/K] = i; }
   }
   else {
     SA.resize(N);
@@ -75,13 +75,13 @@ sparseSA::sparseSA(string &S_, vector<string> &descr_, vector<long> &startpos_, 
     }
 
     // Remap the alphabet. 
-    for(long i = 0; i < N; i++) ISA[i] = (int)S[i]; 
-    for (long i = 0; i < N; i++) ISA[i]=char2int[ISA[i]] + 1; 
+    for (long i = 0; i < N; i++) ISA[i] = (SAentry_t)S[i]; 
+    for (long i = 0; i < N; i++) ISA[i] = (SAentry_t)char2int[ISA[i]] + 1; 
     // First "character" equals 1 because of above plus one, l=1 in suffixsort(). 
     int alphalast = alphasz + 1;
     
     // Use LS algorithm to construct the suffix array.
-    int *SAint = (int*)(&SA[0]);
+    SAentry_t *SAint = (SAentry_t*)(&SA[0]);
     suffixsort(&ISA[0], SAint , N-1, alphalast, 1);
   }
 
@@ -121,7 +121,7 @@ void sparseSA::computeLCP() {
 // Recurse until big-K size prefixes are sorted. Adapted from the C++
 // source code for the wordSA implementation from the following paper:
 // Ferragina and Fischer. Suffix Arrays on Words. CPM 2007.
-void sparseSA::radixStep(int *t_new, int *SA, long &bucketNr, long *BucketBegin, long l, long r, long h) {
+void sparseSA::radixStep(SAentry_t *t_new, SAentry_t *SA, long &bucketNr, long *BucketBegin, long l, long r, long h) {
   if(h >= K) return;
   // first pass: count
   vector<long> Sigma(256, 0); // Sigma counts occurring characters in bucket
@@ -142,7 +142,7 @@ void sparseSA::radixStep(int *t_new, int *SA, long &bucketNr, long *BucketBegin,
     else {
       // American flag sort of McIlroy et al. 1993. BucketBegin keeps
       // track of current position where to add to bucket set.
-      int tmp = SA[ BucketBegin[ S[ SA[pos]*K + h ] ] ]; 
+      SAentry_t tmp = SA[ BucketBegin[ S[ SA[pos]*K + h ] ] ]; 
       SA[ BucketBegin[ S[ SA[pos]*K + h] ]++ ] = SA[pos];  // Move bucket beginning to the right, and replace 
       SA[ pos ] = tmp; // Save value at bucket beginning.
       if (S[ SA[pos]*K + h ] == currentKey) pos++; // Advance to next position if the right character.

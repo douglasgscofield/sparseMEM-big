@@ -11,11 +11,19 @@
    the code must be clearly marked. No warranty is given regarding the quality
    of this software.*/
 
+/* Altered to handle larger genomes, Douglas G. Scofield, douglasgscofield@gmail.com */
+
 #include <limits.h>
 
-static int *I,                  /* group array, ultimately suffix array.*/
-   *V,                          /* inverse array, ultimately inverse of I.*/
-   r,                           /* number of symbols aggregated by transform.*/
+#ifdef SIXTYFOURBITS
+typedef long SAentry_t;
+#else
+typedef int SAentry_t;
+#endif
+
+static SAentry_t *I,                  /* group array, ultimately suffix array.*/
+   *V;                          /* inverse array, ultimately inverse of I.*/
+static SAentry_t r,                  /* number of symbols aggregated by transform.*/
    h;                           /* length of already-sorted prefixes.*/
 
 #define KEY(p)          (V[*(p)+(h)])
@@ -27,9 +35,9 @@ static int *I,                  /* group array, ultimately suffix array.*/
 /* Subroutine for select_sort_split and sort_split. Sets group numbers for a
    group whose lowest position in I is pl and highest position is pm.*/
 
-static void update_group(int *pl, int *pm)
+static void update_group(SAentry_t *pl, SAentry_t *pm)
 {
-   int g;
+   SAentry_t g;
 
    g=pm-I;                      /* group number.*/
    V[*pl]=g;                    /* update group number of first position.*/
@@ -44,9 +52,9 @@ static void update_group(int *pl, int *pm)
 /* Quadratic sorting method to use for small subarrays. To be able to update
    group numbers consistently, a variant of selection sorting is used.*/
 
-static void select_sort_split(int *p, int n) {
-   int *pa, *pb, *pi, *pn;
-   int f, v, tmp;
+static void select_sort_split(SAentry_t *p, SAentry_t n) {
+   SAentry_t *pa, *pb, *pi, *pn;
+   SAentry_t f, v, tmp;
 
    pa=p;                        /* pa is start of group being picked out.*/
    pn=p+n-1;                    /* pn is last position of subarray.*/
@@ -71,9 +79,9 @@ static void select_sort_split(int *p, int n) {
 
 /* Subroutine for sort_split, algorithm by Bentley & McIlroy.*/
 
-static int choose_pivot(int *p, int n) {
-   int *pl, *pm, *pn;
-   int s;
+static SAentry_t choose_pivot(SAentry_t *p, SAentry_t n) {
+   SAentry_t *pl, *pm, *pn;
+   SAentry_t s;
    
    pm=p+(n>>1);                 /* small arrays, middle element.*/
    if (n>7) {
@@ -96,10 +104,10 @@ static int choose_pivot(int *p, int n) {
    Software -- Practice and Experience 23(11), 1249-1265 (November 1993). This
    function is based on Program 7.*/
 
-static void sort_split(int *p, int n)
+static void sort_split(SAentry_t *p, SAentry_t n)
 {
-   int *pa, *pb, *pc, *pd, *pl, *pm, *pn;
-   int f, v, s, t, tmp;
+   SAentry_t *pa, *pb, *pc, *pd, *pl, *pm, *pn;
+   SAentry_t f, v, s, t, tmp;
 
    if (n<7) {                   /* multi-selection sort smallest arrays.*/
       select_sort_split(p, n);
@@ -158,9 +166,9 @@ static void sort_split(int *p, int n)
    Output: x is V and p is I after the initial sorting stage of the refined
    suffix sorting algorithm.*/
       
-static void bucketsort(int *x, int *p, int n, int k)
+static void bucketsort(SAentry_t *x, SAentry_t *p, SAentry_t n, SAentry_t k)
 {
-   int *pi, i, c, d, g;
+   SAentry_t *pi, i, c, d, g;
 
    for (pi=p; pi<p+k; ++pi)
       *pi=-1;                   /* mark linked lists empty.*/
@@ -193,20 +201,24 @@ static void bucketsort(int *x, int *p, int n, int k)
    storage. q controls aggregation and compaction by defining the maximum value
    for any symbol during transformation: q must be at least k-l; if q<=n,
    compaction is guaranteed; if k-l>n, compaction is never done; if q is
-   INT_MAX, the maximum number of symbols are aggregated into one.
+   INT_MAX or LONG_MAX, the maximum number of symbols are aggregated into one.
    
    Output: Returns an integer j in the range 1...q representing the size of the
    new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
    set to the number of old symbols grouped into one. Only x[n] is 0.*/
 
-static int transform(int *x, int *p, int n, int k, int l, int q)
+static SAentry_t transform(SAentry_t *x, SAentry_t *p, SAentry_t n, SAentry_t k, SAentry_t l, SAentry_t q)
 {
-   int b, c, d, e, i, j, m, s;
-   int *pi, *pj;
+   SAentry_t b, c, d, e, i, j, m, s;
+   SAentry_t *pi, *pj;
    
    for (s=0, i=k-l; i; i>>=1)
       ++s;                      /* s is number of bits in old symbol.*/
-   e=INT_MAX>>s;                /* e is for overflow checking.*/
+#ifdef SIXTYFOURBITS
+   e=LONG_MAX>>s;               /* e is for overflow checking.*/
+#else
+   e=INT_MAX>>s;               /* e is for overflow checking.*/
+#endif
    for (b=d=r=0; r<n && d<=e && (c=d<<s|(k-l))<=q; ++r) {
       b=b<<s|(x[r]-l+1);        /* b is start of x in chunk alphabet.*/
       d=c;                      /* d is max symbol in chunk alphabet.*/
@@ -255,10 +267,10 @@ static int transform(int *x, int *p, int n, int k, int l, int q)
    contents of x[n] is disregarded, the n-th symbol being regarded as
    end-of-string smaller than all other symbols.*/
 
-void suffixsort(int *x, int *p, int n, int k, int l)
+void suffixsort(SAentry_t *x, SAentry_t *p, SAentry_t n, SAentry_t k, SAentry_t l)
 {
-   int *pi, *pk;
-   int i, j, s, sl;
+   SAentry_t *pi, *pk;
+   SAentry_t i, j, s, sl;
    
    V=x;                         /* set global values.*/
    I=p;
@@ -267,7 +279,11 @@ void suffixsort(int *x, int *p, int n, int k, int l)
       j=transform(V, I, n, k, l, n);
       bucketsort(V, I, n, j);   /* bucketsort on first r positions.*/
    } else {
+#ifdef SIXTYFOURBITS
+      transform(V, I, n, k, l, LONG_MAX);
+#else
       transform(V, I, n, k, l, INT_MAX);
+#endif
       for (i=0; i<=n; ++i)
          I[i]=i;                /* initialize I with suffix numbers.*/
       h=0;

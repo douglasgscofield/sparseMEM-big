@@ -1,4 +1,4 @@
-FLAGS = -O3
+FLAGS = -O3 -DSIXTYFOURBITS
 SRC = mummer.cpp qsufsort.c sparseSA.cpp fasta.cpp
 
 all: mummer 

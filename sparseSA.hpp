@@ -7,22 +7,28 @@
 #include <algorithm>
 #include <limits>
 
+#ifdef SIXTYFOURBITS
+typedef long SAentry_t;
+#else
+typedef int SAentry_t;
+#endif
+
 using namespace std;
 
 // Stores the LCP array in an unsigned char (0-255).  Values larger
 // than or equal to 255 are stored in a sorted array.
-// Simulates a vector<int> LCP;
+// Simulates a vector<SAentry_t> LCP;
 struct vec_uchar {
   struct item_t{
-    item_t(size_t i, int v) { idx = i; val = v; }
-    size_t idx; int val;
+    item_t(size_t i, SAentry_t v) { idx = i; val = v; }
+    size_t idx; SAentry_t val;
     bool operator < (item_t t) const { return idx < t.idx;  }
   };
   vector<unsigned char> vec;  // LCP values from 0-65534
   vector<item_t> M;
   void resize(size_t N) { vec.resize(N); }
   // Vector X[i] notation to get LCP values.
-  int operator[] (size_t idx) {
+  SAentry_t operator[] (size_t idx) {
     if(vec[idx] == numeric_limits<unsigned char>::max()) 
       return lower_bound(M.begin(), M.end(), item_t(idx,0))->val;
     else 
@@ -30,7 +36,7 @@ struct vec_uchar {
   }
   // Actually set LCP values, distingushes large and small LCP
   // values.
-  void set(size_t idx, int v) {
+  void set(size_t idx, SAentry_t v) {
     if(v >= numeric_limits<unsigned char>::max()) {
       vec.at(idx) = numeric_limits<unsigned char>::max();
       M.push_back(item_t(idx, v));
@@ -70,9 +76,9 @@ struct sparseSA {
   long logN; // ceil(log(N)) 
   long NKm1; // N/K - 1
   string &S; //!< Reference to sequence data.
-  vector<unsigned int> SA;  // Suffix array.
-  vector<int> ISA;  // Inverse suffix array.
-  vec_uchar LCP; // Simulates a vector<int> LCP.
+  vector<unsigned SAentry_t> SA;  // Suffix array.
+  vector<SAentry_t> ISA;  // Inverse suffix array.
+  vec_uchar LCP; // Simulates a vector<SAentry_t> LCP.
 
   long K; // suffix sampling, K = 1 every suffix, K = 2 every other suffix, K = 3, every 3rd sffix
 
@@ -93,7 +99,7 @@ struct sparseSA {
   void computeLCP();
 
   // Radix sort required to construct transformed text for sparse SA construction.
-  void radixStep(int *t_new, int *SA, long &bucketNr, long *BucketBegin, long l, long r, long h);
+  void radixStep(SAentry_t *t_new, SAentry_t *SA, long &bucketNr, long *BucketBegin, long l, long r, long h);
 
   // Prints match to cout.
   void print_match(match_t m);
