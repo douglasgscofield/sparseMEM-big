@@ -7,10 +7,16 @@
 #include <algorithm>
 #include <limits>
 
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/version.hpp>
+
 #ifdef SIXTYFOURBITS
-typedef long SAentry_t;
+//typedef long SAentry_t;
+# define SAentry_t long
 #else
-typedef int SAentry_t;
+//typedef int SAentry_t;
+#define SAentry_t int
 #endif
 
 using namespace std;
@@ -18,12 +24,14 @@ using namespace std;
 // Stores the LCP array in an unsigned char (0-255).  Values larger
 // than or equal to 255 are stored in a sorted array.
 // Simulates a vector<SAentry_t> LCP;
+struct item_t{
+  item_t() {};
+  item_t(size_t i, SAentry_t v) { idx = i; val = v; }
+  size_t idx; SAentry_t val;
+  bool operator < (item_t t) const { return idx < t.idx;  }
+};
+
 struct vec_uchar {
-  struct item_t{
-    item_t(size_t i, SAentry_t v) { idx = i; val = v; }
-    size_t idx; SAentry_t val;
-    bool operator < (item_t t) const { return idx < t.idx;  }
-  };
   vector<unsigned char> vec;  // LCP values from 0-65534
   vector<item_t> M;
   void resize(size_t N) { vec.resize(N); }
@@ -67,15 +75,15 @@ struct interval_t {
 };
 
 struct sparseSA {
-  vector<string> &descr; // Descriptions of concatenated sequences.
-  vector<long> &startpos; // Lengths of concatenated sequences.
+  vector<string> descr; // Descriptions of concatenated sequences.
+  vector<long> startpos; // Lengths of concatenated sequences.
   long maxdescrlen; // Maximum length of the sequence description, used for formatting.
   bool _4column; // Use 4 column output format.
 
   long N; //!< Length of the sequence.
   long logN; // ceil(log(N)) 
   long NKm1; // N/K - 1
-  string &S; //!< Reference to sequence data.
+  string S; //!< Reference to sequence data.
   vector<unsigned SAentry_t> SA;  // Suffix array.
   vector<SAentry_t> ISA;  // Inverse suffix array.
   vec_uchar LCP; // Simulates a vector<SAentry_t> LCP.
@@ -92,7 +100,8 @@ struct sparseSA {
     seqpos = hit - *it;
   } 
 
-  // Constructor builds sparse suffix array. 
+  // Constructor builds sparse suffix array.
+  sparseSA() {};
   sparseSA(string &S_, vector<string> &descr_, vector<long> &startpos_, bool __4column, long K_);
 
   // Modified Kasai et all for LCP computation.
@@ -176,6 +185,40 @@ struct sparseSA {
   void MUM(string &P, vector<match_t> &unique, int min_len, bool print);  
 };
 
+namespace boost{
+  namespace serialization {
+    template<class Archive>
+    void serialize(Archive &ar, item_t &item, const unsigned int version)
+    {
+      ar & item.idx;
+      ar & item.val;
+    }
+
+    template<class Archive>
+    void serialize(Archive &ar, vec_uchar &v, const unsigned int version)
+    {
+      ar & v.vec;
+      ar & v.M;
+    }
+
+    template<class Archive>
+    void serialize(Archive &ar, sparseSA &sa, const unsigned int version)
+    {
+      ar & sa.descr;
+      ar & sa.startpos;
+      ar & sa.maxdescrlen;
+      ar & sa._4column;
+      ar & sa.N;
+      ar & sa.logN;
+      ar & sa.NKm1;
+      ar & sa.S;
+      ar & sa.SA;
+      ar & sa.ISA;
+      ar & sa.LCP;
+      ar & sa.K;
+    }
+  } // namespace serialization
+} // namespace boost
 
 #endif // __sparseSA_hpp__
 

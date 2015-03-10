@@ -1,9 +1,12 @@
-FLAGS = -O3 -DSIXTYFOURBITS
+FLAGS = -O3 -DSIXTYFOURBITS -pthread 
 SRC = mummer.cpp qsufsort.c sparseSA.cpp fasta.cpp
 
 all: mummer 
 
-mummer: mummer.o qsufsort.o sparseSA.o fasta.o
+create_mummer_index: create_mummer_index.o qsufsort.o sparseSA.o fasta.o /usr/lib/libboost_serialization.a
+	g++ -lpthread $(FLAGS) $^ -o $@
+
+mummer: mummer.o qsufsort.o sparseSA.o fasta.o /usr/lib/libboost_serialization.a
 	g++ -lpthread $(FLAGS) $^ -o $@
 
 .cpp.o:

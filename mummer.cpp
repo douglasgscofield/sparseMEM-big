@@ -11,6 +11,7 @@
 #include <sys/time.h>
 
 #include <cctype> // std::tolower(), uppercase/lowercase conversion
+#include <boost/archive/binary_iarchive.hpp>
 
 // NOTE use of special characters ~, `, and $ !!!!!!!!
 
@@ -22,7 +23,7 @@ enum mum_t { MUM, MAM, MEM };
 
 int min_len = 20;
 mum_t type = MAM;
-bool rev_comp = false, _4column = false, nucleotides_only = false;
+bool rev_comp = false, nucleotides_only = false;
 int K = 1, num_threads = 1, query_threads = 1;
 sparseSA *sa;
 string query_fasta;
@@ -149,11 +150,10 @@ int main(int argc, char* argv[]) {
       {"maxmatch", 0, 0, 0}, // 3
       {"mum", 0, 0, 0}, // 4
       {"mumcand", 0, 0, 0},  // 5
-      {"F", 0, 0, 0}, // 6
-      {"k", 1, 0, 0}, // 7
-      {"threads", 1, 0, 0}, // 8
-      {"n", 0, 0, 0}, // 9
-      {"qthreads", 1, 0, 0}, // 10
+      {"k", 1, 0, 0}, // 6
+      {"threads", 1, 0, 0}, // 7
+      {"n", 0, 0, 0}, // 8
+      {"qthreads", 1, 0, 0}, // 9
       {0, 0, 0, 0} 
     };
     int longindex = -1;
@@ -172,11 +172,10 @@ int main(int argc, char* argv[]) {
       case 3: type = MEM; break;
       case 4: type = MUM; break;
       case 5: type = MAM; break;
-      case 6: _4column = true; break;
-      case 7: K = atoi(optarg); break;
-      case 8: num_threads = atoi(optarg); break;
-      case 9: nucleotides_only = true; break;
-      case 10: query_threads = atoi(optarg) ; break;
+      case 6: K = atoi(optarg); break;
+      case 7: num_threads = atoi(optarg); break;
+      case 8: nucleotides_only = true; break;
+      case 9: query_threads = atoi(optarg) ; break;
       default: break; 
       }
     }
@@ -186,20 +185,14 @@ int main(int argc, char* argv[]) {
   if(K != 1 && type != MEM) { cerr << "-k option valid only for -maxmatch" << endl; exit(1); }
   if(num_threads <= 0) { cerr << "invalid number of threads specified" << endl; exit(1); }
 
-  string ref_fasta = argv[optind]; 
+  string ref_fasta_index = argv[optind];
   query_fasta = argv[optind+1];
 
-  string ref;
-  
-  vector<string> refdescr; 
-  vector<long> startpos;
-
-  load_fasta(ref_fasta, ref, refdescr, startpos);
-
-  // Automatically use 4 column format if there are multiple reference sequences.
-  if(startpos.size() > 1) _4column = true;
-
-  sa = new sparseSA(ref, refdescr, startpos, _4column, K);
+  std::ifstream infile(ref_fasta_index.c_str(), std::ios::binary | std::ios::in);
+  boost::archive::binary_iarchive ia(infile);
+  sparseSA ssa;
+  ia >> ssa;
+  sa = &ssa;
 
   pthread_attr_t attr;  pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -226,7 +219,7 @@ int main(int argc, char* argv[]) {
 
 
 void usage(string prog) {
-  cerr << "Usage: " << prog << " [options] <reference-file> <query-file>" << endl;
+  cerr << "Usage: " << prog << " [options] <reference-file-index> <query-file>" << endl;
   cerr << "Implemented MUMmer v3 options:" << endl;
   cerr << "-mum           compute maximal matches that are unique in both sequences" << endl;
   cerr << "-mumreference  compute maximal matches that are unique in the reference-" << endl;
@@ -236,8 +229,6 @@ void usage(string prog) {
   cerr << "-l             set the minimum length of a match" << endl;
   cerr << "               if not set, the default value is 20" << endl;
   cerr << "-b             compute forward and reverse complement matches" << endl;
-  cerr << "-F             force 4 column output format regardless of the number of" << endl;
-  cerr << "               reference sequence inputs"  << endl;
   cerr << "-n             match only the characters a, c, g, or t" << endl;
   cerr << endl;
   cerr << "Additional options:" << endl;

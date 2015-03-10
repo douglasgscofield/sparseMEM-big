@@ -6,3 +6,4 @@
 *.o
 *.a
 mummer
+create_mummer_index
