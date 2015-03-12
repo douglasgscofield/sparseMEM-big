@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 
   std::ofstream of(output_name.c_str(), std::ios::binary | std::ios::out);
   boost::archive::binary_oarchive oa(of);
-  oa << sa;
+  oa << *sa;
   
   delete sa;
 }

@@ -212,9 +212,7 @@ int main(int argc, char* argv[]) {
 
   // Wait for all threads to terminate.
   for(int i = 0; i < query_threads; i++) 
-    pthread_join(thread_ids[i], NULL);    
-  
-  delete sa;
+    pthread_join(thread_ids[i], NULL);
 }
 
 
