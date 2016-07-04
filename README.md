@@ -1,6 +1,9 @@
 sparseMEM-big : sparseMEM for large genomes
 ===========================
 
+**NOTE: This branch (godotgildor-fork) does not currently compile for me on my iMac, boost link problems.**
+
+
 A [suffix array][] can be a useful data structure for representing sequence content.  [MUMmer][] is perhaps the best-known tool to use suffix arrays, but the speed and capacity of MUMmer can be improved upon, given some trade-offs.  [sparseMEM][] offers a drop-in replacement for the `mummer` program that is reported to be more memory-efficient than that in MUMmer, with a couple of differences:
 
 * Economy of memory, at the cost of greater run time
