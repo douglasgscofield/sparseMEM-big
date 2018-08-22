@@ -1,3 +1,10 @@
+NOTE: Use [Mummer4](https://github.com/mummer4/mummer)
+======
+
+It uses 48-bit suffix arrays and multiple cores for alignment, so is much better suited to this task.  This project was always a bit of a hack anyway and never functioned satisfactorily.
+
+
+
 sparseMEM-big : sparseMEM for large genomes
 ===========================
 
